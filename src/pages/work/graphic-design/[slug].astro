@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import GlassNav from '../../../components/GlassNav.astro';
 import {graphicDesign} from '../../../data/graphicDesign';
 
 // LEVEL 1 — HALAMAN GALERI KATEGORI.
@@ -20,9 +21,15 @@ const {card, items} = Astro.props;
 // galeri/arsip: karyanya tidak membuka route, melainkan viewer gambar (Lightbox).
 const isLogo = card.key === 'logos';
 const detailBase = `/work/graphic-design/${card.slug}`;
+// §5 / §11 Cyclic prev-next antar KATEGORI, mengikuti urutan categoryCards
+// (logo → poster → social-media). Selalu terisi → tombol tidak pernah hilang.
+const cards = graphicDesign.categoryCards;
+const ci = cards.findIndex(c => c.slug === card.slug);
+const previous = cards[(ci - 1 + cards.length) % cards.length];
+const next = cards[(ci + 1) % cards.length];
 ---
 
-<BaseLayout title={card.label}>
+<BaseLayout title={card.label} hideBackLink>
   <article class="detail">
     <div class="card surface">
       {/* Header tetap seperti visual yang sudah disetujui. */}
@@ -59,6 +66,16 @@ const detailBase = `/work/graphic-design/${card.slug}`;
       )}
     </div>
   </article>
+
+  {/* Navigasi standard: SETELAH konten galeri, dalam document flow.
+      Back kiri → hub /work · Prev/Next kanan → siklus antar kategori.
+      Icon-only, tanpa teks. hideBackLink mencegah .global-back dobel. */}
+  <GlassNav
+    backHref="/work"
+    prevHref={`/work/graphic-design/${previous.slug}`}
+    nextHref={`/work/graphic-design/${next.slug}`}
+    backLabel="Back to Work"
+  />
 </BaseLayout>
 
 <style>
