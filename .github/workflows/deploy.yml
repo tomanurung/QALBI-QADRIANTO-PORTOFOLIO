@@ -12,8 +12,8 @@ permissions:
   pages: write
   id-token: write
 
-# Hanya satu deployment berjalan; yang menunggu tidak dibatalkan agar
-# rilis yang dan selesai tidak terpotong.
+# Hanya satu deployment berjalan sekaligus; yang menunggu tidak dibatalkan
+# agar rilis yang sedang berjalan tidak terpotong.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -28,19 +28,19 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      # `npm run build` menjalankan `astro check && astro build`,
-      # sehingga build gagal bila ada error TypeScript/Astro.
-      - name: Build
-        run: npm run build
+      # `npm run check` memisahkan linting dari build agar kegagalan
+      # lebih jelas; `npm run build` = `astro check && astro build`.
+      - name: Check Astro project
+        run: npm run check
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      - name: Build Astro site
+        run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
