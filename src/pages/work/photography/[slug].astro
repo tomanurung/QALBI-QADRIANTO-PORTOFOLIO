@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import GlassNav from '../../../components/GlassNav.astro';
+import {photography} from '../../../data/photography';
+
+export function getStaticPaths(){return photography.map((item,index)=>({params:{slug:item.slug},props:{item,index}}));}
+const {item,index}=Astro.props;
+// Logic prev/next dipertahankan dari implementasi existing, ditambah cycle (§11).
+const previous=photography[(index-1+photography.length)%photography.length];
+const next=photography[(index+1)%photography.length];
+// §8 Back deterministik ke list Photography.
+const backHref='/work#photography';
+---
+<BaseLayout title={item.title}><article class="card detail" data-reveal><div class="media" data-reveal-media><img src={item.image} alt={item.caption}/></div><div class="info" data-reveal-item><div><h1>{item.title}</h1><p>{item.year} · {item.role} · {item.location}</p></div><p>{item.description}</p></div></article><div class="detail-nav-wrap"><GlassNav
+  backHref={backHref}
+  prevHref={`/work/photography/${previous.slug}`}
+  nextHref={`/work/photography/${next.slug}`}
+  backLabel="Back to Photography"
+/></div></BaseLayout>
+<style>.detail{max-width:1050px;margin:auto;padding:45px;border-radius:28px}.detail-nav-wrap{max-width:1050px;margin:auto;padding:0 clamp(20px,4vw,45px)}
+.media{aspect-ratio:3/2;background:#d8d4ca}.info{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin:30px 0}.info p{line-height:1.6}h1{font-size:32px;letter-spacing:-.04em}@media(max-width:700px){.detail{padding:20px}.detail-nav-wrap{padding:0 20px}.info{grid-template-columns:1fr;gap:0}}</style>

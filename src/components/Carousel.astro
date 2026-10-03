@@ -1,0 +1,58 @@
+---
+type ReelSourcePayload =
+  | { type: 'google-drive'; url: string }
+  | { type: 'instagram'; url: string }
+  | { type: 'none' };
+
+interface Item {
+  title: string;
+  image: string;
+  caption?: string;
+  href?: string;
+  /* Reels only: sumber eksternal eksplisit (tanpa local video file). */
+  alt?: string;
+  source?: ReelSourcePayload;
+}
+interface Props { items: Item[]; portrait?: boolean; minimal?: boolean; dotsOnly?: boolean; photo?: boolean; reels?: boolean; }
+const {items,portrait=false,minimal=false,dotsOnly=false,photo=false,reels=false}=Astro.props;
+// Mode reels: card = facade thumbnail. Tanpa caption, tanpa metadata, tanpa kontrol nav.
+const hideControls = reels || minimal || photo;
+// Google Drive: URL biasa (/file/d/ID/view atau open?id=ID) → embed /preview. Tanpa dependency.
+const drivePreview=(raw:string):string=>{
+  const m=/(?:drive\.google\.com\/file\/d\/|drive\.google\.com\/open\?id=|[?&]id=)([A-Za-z0-9_-]{10,})/.exec(raw);
+  return m?`https://drive.google.com/file/d/${m[1]}/preview`:'';
+};
+---
+<section data-carousel data-reels={reels ? '' : undefined} data-photo={photo ? '' : undefined} class:list={['carousel',{portrait,photo,reels}]} aria-label={portrait?'Reels carousel':'Photography carousel'}>
+<div class="track" tabindex="0" aria-label={reels?'Gulir horizontal untuk melihat reel':'Use arrow keys to browse'}>{items.map((item,i)=>reels?<div class="slide media reel-slide" data-reel-type={item.source?.type||'none'}>{item.source?.type==='google-drive'?<><img src={item.image} alt={item.alt||item.title} loading={i===0?'eager':'lazy'}/><button class="reel-toggle" type="button" aria-label={`Putar ${item.title}`} aria-pressed="false" data-drive={drivePreview(item.source.url)} hidden={!drivePreview(item.source.url)}><span class="reel-toggle-icon" aria-hidden="true"></span></button></>:item.source?.type==='instagram'?<a class="reel-link" href={item.source.url||undefined} aria-label={`Buka ${item.title} di Instagram`} target="_blank" rel="noopener noreferrer" aria-disabled={item.source.url?'false':'true'}><img src={item.image} alt={item.alt||item.title} loading={i===0?'eager':'lazy'}/></a>:<img src={item.image} alt={item.alt||item.title} loading={i===0?'eager':'lazy'}/>}</div>:<a class="slide media" href={item.href} data-caption={item.caption} aria-label={item.title}><img src={item.image} alt={item.caption} loading={i===0?'eager':'lazy'}/></a>)}</div>
+{!hideControls && <div class="controls">{!dotsOnly && <button data-prev aria-label="Previous slide">←</button>}<div class="dots">{items.map((_,i)=><button data-index={i} aria-label={`Slide ${i+1}`} aria-pressed={i===0}></button>)}</div>{!dotsOnly && <button data-next aria-label="Next slide">→</button>}</div>}
+{!minimal && !reels && <><p data-caption-output aria-live="polite">{items[0]?.caption}</p><a data-detail href={items[0]?.href} class="detail-link">Selengkapnya</a></>}
+</section>
+<style>.carousel{text-align:center}.track{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 10%;touch-action:pan-x pan-y}.track::-webkit-scrollbar{display:none}.slide{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:3/2;background:#ddd;user-select:none}.slide img{pointer-events:none}.portrait .slide{flex-basis:calc(50% - 10px);aspect-ratio:9/16}.carousel.photo .slide{flex:0 0 70%}.controls{display:flex;justify-content:center;align-items:center;gap:25px;margin:24px 0}.controls>button{border:1px solid #ccc;border-radius:50%;width:32px;height:32px;background:transparent;cursor:pointer}.dots{display:flex;gap:9px;align-items:center}.dots button{width:8px;height:8px;border:0;border-radius:99px;background:#c4c1ba;padding:0;cursor:pointer;transition:width .4s var(--ease-out-editorial)}.dots button[aria-pressed=true]{width:32px;background:var(--ink)}[data-caption-output]{font-size:22px;line-height:1.4;max-width:620px;margin:20px auto}.detail-link{display:inline-block;border:1px solid #aaa;border-radius:99px;padding:12px 25px;font-size:13px}@media(max-width:600px){.track{padding:0 6%;gap:12px}[data-caption-output]{font-size:18px}.portrait .slide{flex-basis:calc(50% - 6px)}}
+/* Reels: card = facade thumbnail 9:16. Embed hanya di-mount saat diaktifkan. */
+.carousel.reels .slide{flex:0 0 auto;width:clamp(200px,22vw,264px);aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#e8e6e1;position:relative}
+.carousel.reels .track{padding:0 40px 8px;gap:20px}
+.carousel.reels .slide img,.carousel.reels .slide iframe,.carousel.reels .reel-link{width:100%;height:100%;display:block}
+.carousel.reels .slide img{object-fit:cover}
+.carousel.reels .slide iframe{position:absolute;inset:0;border:0;background:#000}
+.carousel.reels .reel-link{color:inherit;text-decoration:none}
+.carousel.reels .slide[data-mounted] img{visibility:hidden}
+.reel-toggle{position:absolute;inset:0;margin:auto;width:56px;height:56px;border:0;border-radius:99px;cursor:pointer;opacity:0;transition:opacity .3s var(--ease-out-editorial);background:rgba(255,255,255,.3);-webkit-backdrop-filter:blur(14px) saturate(180%);backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(17,17,16,.12)}
+.reel-toggle-icon{display:block;width:0;height:0;margin:auto;border-style:solid;border-width:9px 0 9px 15px;border-color:transparent transparent transparent #111110}
+.carousel.reels .slide:hover .reel-toggle,.reel-toggle:focus-visible{opacity:1}
+.carousel.reels .slide[data-mounted] .reel-toggle{display:none}
+@media(hover:hover){.carousel.reels .slide:hover .reel-toggle{opacity:1}}
+@media(max-width:860px){.carousel.reels .slide{width:clamp(180px,34vw,240px)}}
+@media(max-width:600px){.carousel.reels .track{padding:0 20px 8px;gap:12px}.carousel.reels .slide{width:66vw}}
+@media(prefers-reduced-motion:reduce){.reel-toggle{transition:none}}</style>
+<script>
+function initCarousels(){document.querySelectorAll<HTMLElement>('[data-carousel]').forEach(root=>{if(root.dataset.ready)return;root.dataset.ready='true';const track=root.querySelector<HTMLElement>('.track')!;const slides=[...track.querySelectorAll<HTMLAnchorElement>('.slide')];const dots=[...root.querySelectorAll<HTMLButtonElement>('[data-index]')];let active=0;const reduced=matchMedia('(prefers-reduced-motion: reduce)');const go=(i:number)=>{i=Math.max(0,Math.min(slides.length-1,i));track.scrollTo({left:slides[i].offsetLeft-track.offsetLeft-(track.clientWidth-slides[i].clientWidth)/2,behavior:reduced.matches?'instant':'smooth'});};root.querySelector('[data-prev]')?.addEventListener('click',()=>go(active-1));root.querySelector('[data-next]')?.addEventListener('click',()=>go(active+1));dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));track.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go(active+(e.key==='ArrowRight'?1:-1));}});track.addEventListener('scroll',()=>{const center=track.getBoundingClientRect().left+track.clientWidth/2;let nearest=0,distance=Infinity;slides.forEach((s,i)=>{const r=s.getBoundingClientRect(),d=Math.abs(r.left+r.width/2-center);if(d<distance){distance=d;nearest=i;}});active=nearest;dots.forEach((d,i)=>d.setAttribute('aria-pressed',String(i===active)));const cap=root.querySelector('[data-caption-output]');if(cap)cap.textContent=(slides[active]as HTMLElement).dataset.caption||'';const det=root.querySelector<HTMLAnchorElement>('[data-detail]');if(det)det.href=slides[active].href;},{passive:true});let start=0,left=0,drag=false,moved=false;track.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button!==0)return;start=e.clientX;left=track.scrollLeft;drag=true;moved=false;});track.addEventListener('pointermove',e=>{if(!drag)return;if(Math.abs(e.clientX-start)>5){moved=true;track.style.scrollSnapType='none';track.scrollLeft=left-(e.clientX-start);}});const end=()=>{if(!drag)return;drag=false;track.style.scrollSnapType='';if(moved)go(active);};track.addEventListener('pointerup',end);track.addEventListener('pointerleave',end);track.addEventListener('dragstart',e=>e.preventDefault());track.addEventListener('click',e=>{if(moved){e.preventDefault();moved=false;}},true);});}
+function initReels(){document.querySelectorAll<HTMLElement>('[data-reels]').forEach(root=>{if(root.dataset.reelsReady)return;root.dataset.reelsReady='true';
+// Maksimal SATU embed aktif: unmount iframe sebelumnya → kembali jadi thumbnail facade.
+const unmount=()=>{root.querySelectorAll<HTMLElement>('.slide[data-mounted]').forEach(s=>{s.querySelector('iframe')?.remove();s.removeAttribute('data-mounted');const t=s.querySelector<HTMLButtonElement>('.reel-toggle');if(t){t.setAttribute('aria-pressed','false');t.hidden=false;}});};
+const mount=(slide:HTMLElement,embedUrl:string)=>{unmount();const frame=document.createElement('iframe');frame.src=embedUrl;frame.loading='lazy';frame.allow='autoplay; fullscreen; encrypted-media';frame.setAttribute('allowfullscreen','');frame.title=slide.querySelector('img')?.getAttribute('alt')||'Reel';slide.appendChild(frame);slide.setAttribute('data-mounted','');const t=slide.querySelector<HTMLButtonElement>('.reel-toggle');if(t){t.setAttribute('aria-pressed','true');t.hidden=true;}};
+root.querySelectorAll<HTMLButtonElement>('.reel-toggle').forEach(btn=>{const url=btn.dataset.drive||'';if(!url)return;btn.hidden=false;btn.addEventListener('click',()=>{const slide=btn.closest<HTMLElement>('.slide');if(slide)mount(slide,url);});});
+root.addEventListener('keydown',e=>{if(e.key==='Escape')unmount();});
+});}
+initCarousels();initReels();document.addEventListener('astro:page-load',initCarousels);document.addEventListener('astro:page-load',initReels);
+</script>

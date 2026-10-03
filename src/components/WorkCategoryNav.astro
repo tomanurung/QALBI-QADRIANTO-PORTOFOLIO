@@ -1,0 +1,7 @@
+---
+import { workCategories } from '../data/workCategories';
+const current = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const onWork = current === '/work';
+---
+<nav class="category-nav" aria-label="Work categories">{workCategories.map(c=><a href={c.href} class:list={{active: onWork && c.id === 'documentary'}}>{c.navLabel}</a>)}</nav>
+<style>.category-nav{display:flex;justify-content:center;gap:6px;margin:38px auto 70px}.category-nav a{padding:10px 16px;border-radius:99px;font-size:12px;border:1px solid transparent;transition:background .25s var(--ease-out-editorial),border-color .25s var(--ease-out-editorial)}.category-nav a:hover,.category-nav a:focus-visible,.category-nav a:active,.category-nav a.active{background:rgba(255,255,255,.65);border-color:rgba(17,17,16,.16)}@media(max-width:600px){.category-nav{overflow-x:auto;justify-content:flex-start}.category-nav a{white-space:nowrap}}</style>

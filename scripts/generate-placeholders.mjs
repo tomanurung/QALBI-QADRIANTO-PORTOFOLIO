@@ -1,0 +1,7 @@
+import sharp from 'sharp';
+import { mkdir, writeFile } from 'node:fs/promises';
+const svg=(label,w=1200,h=800)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="#d5d1c6"/><path d="M0 ${h*.7} L${w*.35} ${h*.38} L${w*.6} ${h*.65} L${w} ${h*.32} V${h} H0Z" fill="#b0b1a1"/><text x="50%" y="50%" text-anchor="middle" font-family="Arial" font-size="28" fill="#333">${label}</text><text x="50%" y="57%" text-anchor="middle" font-family="Arial" font-size="16" fill="#555">DUMMY MEDIA · NOT ORIGINAL PHOTOGRAPHY</text></svg>`;
+async function save(path,label,portrait=false){await mkdir(`public${path.substring(0,path.lastIndexOf('/'))}`,{recursive:true});const source=svg(label,portrait?720:1200,portrait?1280:800);if(path.endsWith('.webp'))await sharp(Buffer.from(source)).webp().toFile(`public${path}`);else await writeFile(`public${path}`,source);}
+for(let i=1;i<=3;i++){await save(`/media/photography/photo-0${i}.webp`,`Photography ${i}`);await save(`/media/reels/reel-0${i}.webp`,`Reel ${i}`,true);await save(`/media/documentary/documentary-${i}.svg`,`Documentary ${i}`);for(let j=1;j<=6;j++)await save(`/media/documentary/documentary-${i}-${j}.svg`,`Documentary ${i} — Frame ${j}`);}
+for(const [kind,folder,count] of [['identity','identity',6],['poster','posters',5],['social','social',12]])for(let i=1;i<=count;i++)await save(`/media/${folder}/${kind}-${i}.svg`,`${kind} ${i}`);
+console.log('Dummy assets generated. Original footer portrait deliberately not fabricated.');

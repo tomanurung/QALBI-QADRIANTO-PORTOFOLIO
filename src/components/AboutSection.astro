@@ -1,0 +1,52 @@
+---
+// Section About (BODY saja, tanpa layout/h1 pembungkus halaman).
+// Sumber tunggal: dipakai oleh /about dan pengalaman kontinu di /.
+import { site, aboutBio, experience, tools, capabilities, education, languages } from '../data/site';
+---
+
+<section class="about-intro"><div class="portrait">Q</div><div class="bio"><p>{aboutBio}</p><div class="glass contact-pill">{site.contacts.instagramUrl ? <a href={site.contacts.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram</a> : <span aria-disabled="true">Instagram</span>}<a href={`mailto:${site.contacts.email}`} class="email-link" data-email={site.contacts.email} title="Buka Gmail (fallback: aplikasi email)" aria-label={`Email ${site.contacts.email}`}>Email</a>{site.cv.url ? <a href={site.cv.url} target="_blank" rel="noopener noreferrer">{site.cv.label}</a> : <span aria-disabled="true">{site.cv.label}</span>}</div></div></section>
+<section class="info-grid"><article class="card experience"><h2>EXPERIENCE</h2>{experience.map(e=><div><b>{e[0]}</b><strong>{e[1]}</strong><p>{e[2]}</p></div>)}</article><div class="stack"><article class="card"><h2>TOOLS</h2><p>{tools.join(' · ')}</p></article><article class="card"><h2>EDUCATION</h2><p>{education}</p></article><article class="card"><h2>LANGUAGE</h2><p>{languages.map(l=>`${l[0]} (${l[1]})`).join(' · ')}</p></article></div><article class="card capability"><h2>CAPABILITY</h2>{capabilities.map(c=><p>{c}</p>)}</article></section>
+
+<style>
+  /* Grid 2 kolom: baris 1 = foto + teks, baris 2 = contact glass di kolom KANAN (di bawah teks).
+     Foto membentang baris 1–2, jadi align-self:end pada baris 2 = bottom glass sejajar bottom foto. */
+  .about-intro{display:grid;grid-template-columns:1fr 2fr;grid-template-rows:auto auto;gap:40px 70px;margin:60px 0 80px}
+  .portrait{grid-column:1;grid-row:1 / span 2;background:#d5d1c7;min-height:360px;font-size:10rem;display:grid;place-items:center}
+  .bio{grid-column:2;grid-row:1}
+  .about-intro p{font-size:22px;line-height:1.4;max-width:650px}
+  /* Ukuran/spacing/typography = link group footer (.links). Glass = tombol "Selengkapnya" Documentary (.detail-link). */
+  .contact-pill{grid-column:2;grid-row:2;align-self:end;justify-self:start;position:relative;z-index:2;transform:translate(310px,105px);display:flex;gap:28px;padding:20px 30px;border-radius:99px;font-size:13px;white-space:nowrap;
+    color:#111110;background:rgba(255,255,255,.3);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(17,17,16,.12);transition:background .25s var(--ease-out-editorial)}
+  /* Sama seperti footer: link di atas layer dekoratif agar seluruh area tetap terklik. */
+  .contact-pill a{position:relative;z-index:2;isolation:isolate;border-radius:99px;padding:6px 10px;margin:-6px -10px;cursor:pointer;transition:background .25s var(--ease-out-editorial)}
+  .contact-pill a:hover,.contact-pill a:focus-visible{background:rgba(255,255,255,.5)}
+  .contact-pill a:active{background:rgba(255,255,255,.62)}
+  .contact-pill [aria-disabled]{opacity:.5}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+  .card h2{font-size:15px;font-weight:700;letter-spacing:.08em;margin-top:0}
+  .card strong,.card p{display:block;line-height:1.45}
+  .card div{margin:28px 0}
+  .stack{display:flex;flex-direction:column;gap:20px}
+  .capability p{margin:17px 0}
+  @media(max-width:700px){.about-intro,.info-grid{grid-template-columns:1fr}.about-intro{gap:25px}.about-intro p{font-size:18px}.portrait,.bio,.contact-pill{grid-column:1;grid-row:auto}.contact-pill{transform:none;justify-self:start;max-width:100%;overflow-x:auto;gap:20px;padding:18px}}
+</style>
+<script>
+  // Sama seperti Footer: Gmail compose sebagai utama, mailto: sebagai fallback.
+  document.querySelectorAll<HTMLAnchorElement>('.about-intro a.email-link[data-email]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      const email = a.dataset.email;
+      if (!email) return; // biarkan mailto: bawaan berjalan sebagai fallback
+      // Hormati klik dengan modifier (ctrl/cmd/shift = biarkan mailto: dipakai)
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+      try {
+        const w = window.open(url, '_blank', 'noopener,noreferrer');
+        // Popup diblokir -> fallback ke mailto: lewat location agar tetap terpicu.
+        if (!w || w.closed) window.location.href = a.getAttribute('href') || `mailto:${email}`;
+      } catch {
+        window.location.href = a.getAttribute('href') || `mailto:${email}`;
+      }
+    });
+  });
+</script>

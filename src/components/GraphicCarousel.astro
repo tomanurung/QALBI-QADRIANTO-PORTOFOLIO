@@ -1,0 +1,106 @@
+---
+interface Item { title: string; image: string; description?: string; }
+interface Props { items: Item[]; label?: string; }
+const { items, label } = Astro.props;
+---
+<div data-gcarousel class="gcarousel" aria-label={label || 'Graphic design carousel'}>
+  <div class="gtrack" tabindex="0" aria-label="Use arrow keys to browse, or swipe">
+    {items.map((item, i) => (
+      <a
+        class="gslide media"
+        href={item.image}
+        data-lightbox
+        data-description={item.description}
+        data-title={item.title}
+        aria-label={item.title}
+      >
+        <img src={item.image} alt={item.title} loading={i === 0 ? 'eager' : 'lazy'} />
+      </a>
+    ))}
+  </div>
+  <p class="gcaption" data-gcaption aria-live="polite">{items[0]?.title}</p>
+  <div class="gdots">
+    {items.map((_, i) => (
+      <button data-gindex={i} aria-label={`Slide ${i + 1}`} aria-pressed={i === 0}></button>
+    ))}
+  </div>
+</div>
+<style>
+  .gcarousel{text-align:center}
+  /* padding 20% kiri/kanan → content box = 60% lebar luar. Slide 100% content
+     box = 60% lebar luar dengan peek satu slide di tiap sisi (desktop). */
+  .gtrack{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 20%;touch-action:pan-x pan-y}
+  .gtrack::-webkit-scrollbar{display:none}
+  .gslide{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:4/5;background:#ddd;user-select:none;overflow:hidden;border-radius:6px;-webkit-user-drag:none}
+  .gslide img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;user-select:none;-webkit-user-drag:none}
+  .gcaption{font-size:18px;line-height:1.4;margin:20px auto 16px;max-width:620px}
+  .gdots{display:flex;gap:9px;align-items:center;justify-content:center;margin-bottom:24px}
+  .gdots button{width:8px;height:8px;border:0;border-radius:99px;background:#c4c1ba;padding:0;cursor:pointer;transition:width .4s var(--ease-out-editorial)}
+  .gdots button[aria-pressed=true]{width:32px;background:var(--ink)}
+  @media(max-width:600px){
+    /* padding 12% kiri/kanan → content box = 76% lebar luar. */
+    .gtrack{padding:0 12%;gap:12px}
+    .gslide{flex-basis:100%}
+    .gcaption{font-size:16px}
+  }
+</style>
+<script>
+  function initGraphicCarousels(){
+    document.querySelectorAll<HTMLElement>('[data-gcarousel]').forEach(root=>{
+      if(root.dataset.ready)return;
+      root.dataset.ready='true';
+      const track=root.querySelector<HTMLElement>('.gtrack')!;
+      const slides=[...track.querySelectorAll<HTMLAnchorElement>('.gslide')];
+      const dots=[...root.querySelectorAll<HTMLButtonElement>('[data-gindex]')];
+      const caption=root.querySelector<HTMLElement>('[data-gcaption]');
+      let active=0;
+      const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+      const go=(i:number)=>{
+        i=Math.max(0,Math.min(slides.length-1,i));
+        track.scrollTo({left:slides[i].offsetLeft-track.offsetLeft-(track.clientWidth-slides[i].clientWidth)/2,behavior:reduced.matches?'instant':'smooth'});
+      };
+      dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
+      track.addEventListener('keydown',e=>{
+        if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();go(active+(e.key==='ArrowRight'?1:-1));}
+      });
+      track.addEventListener('scroll',()=>{
+        const center=track.getBoundingClientRect().left+track.clientWidth/2;
+        let nearest=0,distance=Infinity;
+        slides.forEach((s,i)=>{const r=s.getBoundingClientRect(),d=Math.abs(r.left+r.width/2-center);if(d<distance){distance=d;nearest=i;}});
+        active=nearest;
+        dots.forEach((d,i)=>d.setAttribute('aria-pressed',String(i===active)));
+        if(caption)caption.textContent=slides[active].dataset.title||'';
+      },{passive:true});
+      // Drag dengan mouse (pointer) — swipe sentuh sudah native via overflow.
+      let start=0,left=0,drag=false,moved=false;
+      track.addEventListener('pointerdown',e=>{
+        if(e.pointerType!=='mouse'||e.button!==0)return;
+        start=e.clientX;left=track.scrollLeft;drag=true;moved=false;
+      });
+      track.addEventListener('pointermove',e=>{
+        if(!drag)return;
+        const dx=e.clientX-start;
+        if(!moved&&Math.abs(dx)>5){moved=true;track.setPointerCapture(e.pointerId);track.style.scrollSnapType='none';}
+        if(!moved)return;
+        track.scrollLeft=left-dx;
+        e.preventDefault();
+      });
+      const end=(e:PointerEvent)=>{
+        if(!drag)return;
+        drag=false;track.style.scrollSnapType='';
+        if(track.hasPointerCapture(e.pointerId))track.releasePointerCapture(e.pointerId);
+        const center=track.getBoundingClientRect().left+track.clientWidth/2;
+        let nearest=0,distance=Infinity;
+        slides.forEach((s,i)=>{const r=s.getBoundingClientRect(),d=Math.abs(r.left+r.width/2-center);if(d<distance){distance=d;nearest=i;}});
+        go(nearest);
+      };
+      track.addEventListener('pointerup',end);
+      track.addEventListener('pointercancel',end);
+      track.addEventListener('click',e=>{
+        if(moved){e.preventDefault();e.stopPropagation();moved=false;}
+      },true);
+    });
+  }
+  initGraphicCarousels();
+  document.addEventListener('astro:page-load', initGraphicCarousels);
+</script>

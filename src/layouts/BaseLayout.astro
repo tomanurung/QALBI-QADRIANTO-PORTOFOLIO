@@ -1,0 +1,219 @@
+---
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import Lightbox from '../components/Lightbox.astro';
+import BackLink from '../components/BackLink.astro';
+import { isChapterRoute } from '../data/chapters';
+interface Props { title: string; hideBackLink?: boolean; } const { title, hideBackLink = false } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const parent = path.startsWith('/work/') ? '/work' : '/';
+const showBack = path !== '/';
+const chapterRoute = isChapterRoute(path);
+// Footer hanya tampil di halaman Contact.
+const showFooter = path === '/contact';
+// Vertical, direction-aware chapter transition. Uses Astro's native
+// forwards/backwards pairs so Back/Forward and scroll-navigation both feel right.
+const EASE = 'cubic-bezier(.22,1,.336,1)';
+const D = 520;
+const slideY = {
+  forwards: {
+    old: [
+      { name: 'chatSlideOutUp', duration: D, easing: EASE, fillMode: 'both' },
+    ],
+    new: [
+      { name: 'chatSlideInUp', duration: D, easing: EASE, fillMode: 'both' },
+    ],
+  },
+  backwards: {
+    old: [
+      { name: 'chatSlideOutDown', duration: D, easing: EASE, fillMode: 'both' },
+    ],
+    new: [
+      { name: 'chatSlideInDown', duration: D, easing: EASE, fillMode: 'both' },
+    ],
+  },
+};
+---
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width"/><meta name="description" content="Portfolio Qalbi Qadrianto"/><title>{title} — Qalbi Qadrianto</title><ClientRouter/></head><body><Navbar transition:persist/><main class="page" transition:animate={slideY}><slot/>{showBack && !hideBackLink && <div class="global-back"><BackLink href={parent} label="Back" /></div>}</main>{showFooter && <Footer/>}<Lightbox transition:persist/>
+{chapterRoute && <script>
+  import { navigate } from 'astro:transitions/client';
+  import { chapterNeighbor, isChapterRoute } from '../data/chapters';
+
+  // Boundary scroll navigation: behaves like a normal page until the user
+  // keeps scrolling past the very top / bottom. Passive listeners only —
+  // never preventDefault, so in-page scroll, carousels and nested scroll
+  // behaviour are untouched.
+  const THRESHOLD = 90;    // accumulated px of overscroll intent (fast trigger)
+  const FAST = 32;         // a single deliberate flick passes immediately
+  const ARM_IDLE = 200;    // ms of quiet before a new gesture can arm
+  const norm = (p: string) => p.replace(/\/+$/, '') || '/';
+
+  function setup() {
+    const html = document.documentElement;
+    let accum = 0;
+    let locked = false;
+    let armed = true;
+    let resetTimer = 0;
+
+    const atTop = () => window.scrollY <= 1;
+    const atBottom = () =>
+      window.scrollY + window.innerHeight >=
+      document.documentElement.scrollHeight - 2;
+
+    function armReset() {
+      window.clearTimeout(resetTimer);
+      armed = false;
+      resetTimer = window.setTimeout(() => {
+        armed = true;
+        accum = 0;
+      }, ARM_IDLE);
+    }
+
+    function tryNavigate(dir: 'up' | 'down') {
+      if (locked) return;
+      const target = chapterNeighbor(norm(location.pathname), dir);
+      if (!target) return;
+      locked = true;
+      accum = 0;
+      html.dataset.nav = dir;
+      navigate(target, { history: 'push' }).finally(() => {
+        locked = false;
+      });
+    }
+
+    function push(delta: number, dir: 'up' | 'down') {
+      if (locked) return;
+      const onBoundary = dir === 'down' ? atBottom() : atTop();
+      if (!onBoundary) {
+        accum = 0;
+        return;
+      }
+      if (!armed) return; // still within an active gesture (trackpad momentum)
+      const mag = Math.abs(delta);
+      // A single strong scroll tick near the edge fires right away;
+      // otherwise accumulate small ticks until THRESHOLD is reached.
+      accum = mag >= FAST ? THRESHOLD : accum + mag;
+      if (accum >= THRESHOLD) {
+        armReset();
+        tryNavigate(dir);
+      }
+    }
+
+    window.addEventListener(
+      'wheel',
+      (e) => {
+        if (e.ctrlKey || e.metaKey) return;
+        push(e.deltaY, e.deltaY > 0 ? 'down' : 'up');
+      },
+      { passive: true }
+    );
+
+    let touchY = 0;
+    window.addEventListener(
+      'touchstart',
+      (e) => {
+        touchY = e.touches[0]?.clientY ?? 0;
+      },
+      { passive: true }
+    );
+    window.addEventListener(
+      'touchend',
+      (e) => {
+        const endY = e.changedTouches[0]?.clientY ?? touchY;
+        const dy = touchY - endY; // >0 = swipe up = scroll down
+        if (Math.abs(dy) < 12) return;
+        if (dy > 0 ? atBottom() : atTop()) {
+          if (armed) {
+            armReset();
+            tryNavigate(dy > 0 ? 'down' : 'up');
+          }
+        }
+      },
+      { passive: true }
+    );
+
+    // Fallback for keyboard / programmatic scrolling across the boundary.
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (locked) return;
+        if (['ArrowDown', 'PageDown', ' '].includes(e.key) && atBottom()) {
+          armReset();
+          tryNavigate('down');
+        } else if (['ArrowUp', 'PageUp'].includes(e.key) && atTop()) {
+          armReset();
+          tryNavigate('up');
+        }
+      },
+      { passive: true }
+    );
+
+    // Reset runtime state for the newly arrived page.
+    document.addEventListener('astro:page-load', () => {
+      if (!isChapterRoute(norm(location.pathname))) return;
+      accum = 0;
+      locked = false;
+      armed = true;
+      window.clearTimeout(resetTimer);
+      const dir = html.dataset.nav;
+      if (dir === 'up') {
+        // entering from above should reveal the page aligned to its end
+        requestAnimationFrame(() =>
+          window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'auto' })
+        );
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup, { once: true });
+  } else {
+    setup();
+  }
+</script>
+}
+
+
+<!-- Scroll-aware reveal trigger. Single IntersectionObserver, no rAF,
+     no scroll listener, no scroll intervention. Adds [data-in] which the
+     existing reveal CSS requires; unobserves each element after reveal. -->
+<script>
+  () => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function init() {
+      const targets = document.querySelectorAll('[data-reveal],[data-reveal-media]');
+      if (!targets.length) return;
+
+      // Reduced motion (or no IO support): reveal instantly, no animation.
+      if (reduce.matches || !('IntersectionObserver' in window)) {
+        targets.forEach((el) => el.setAttribute('data-in', ''));
+        return;
+      }
+
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.setAttribute('data-in', '');
+            io.unobserve(entry.target);
+          }
+        },
+        { rootMargin: '0px 0px -10% 0px' }
+      );
+
+      targets.forEach((el) => io.observe(el));
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init, { once: true });
+    } else {
+      init();
+    }
+
+    document.addEventListener('astro:page-load', init);
+  };
+</script>
+</body></html>

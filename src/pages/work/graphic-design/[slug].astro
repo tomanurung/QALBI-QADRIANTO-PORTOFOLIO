@@ -1,0 +1,100 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import {graphicDesign} from '../../../data/graphicDesign';
+
+// LEVEL 1 — HALAMAN GALERI KATEGORI.
+// Route: /work/graphic-design/<kategori>  (logo | poster | social-media)
+// Tugasnya HANYA memilih project: header + grid karya yang bisa diklik menuju
+// halaman detail project. Konten presentasi/penjelasan ada di level 2.
+export function getStaticPaths(){
+  return graphicDesign.categoryCards.map(card => ({
+    params: {slug: card.slug},
+    props: {
+      card,
+      items: graphicDesign[card.key as 'logos'|'posters'|'socialMedia'],
+    },
+  }));
+}
+const {card, items} = Astro.props;
+// HANYA Logo yang punya level detail project. Poster & Social Media adalah
+// galeri/arsip: karyanya tidak membuka route, melainkan viewer gambar (Lightbox).
+const isLogo = card.key === 'logos';
+const detailBase = `/work/graphic-design/${card.slug}`;
+---
+
+<BaseLayout title={card.label}>
+  <article class="detail">
+    <div class="card surface">
+      {/* Header tetap seperti visual yang sudah disetujui. */}
+      <header class="head" data-reveal>
+        <p class="eyebrow" data-reveal-item>{card.eyebrow ?? 'Graphic Design'}</p>
+        <div class="head-row" data-reveal-item>
+          <h1>{card.label}</h1>
+          {card.intro && <p class="intro">{card.intro}</p>}
+        </div>
+      </header>
+
+      {/* GALERI — Logo: tiap item menuju detail project.
+          Poster/Social Media: tiap item membuka Lightbox (arsip, tanpa detail). */}
+      {items.length > 0 && (
+        <ul class="gallery" data-reveal>
+          {items.map(item => (
+            <li data-reveal-item>
+              {isLogo
+                ? <a class="tile" href={`${detailBase}/${item.slug}`}>
+                    <span class="tile-media">
+                      <img src={item.image} alt={item.title} loading="lazy" decoding="async"/>
+                    </span>
+                    <span class="tile-title">{item.title}</span>
+                  </a>
+                : <button type="button" class="tile" data-lightbox data-src={item.image} data-description={item.description} aria-label={`Preview ${item.title}`}>
+                    <span class="tile-media">
+                      <img src={item.image} alt={item.title} loading="lazy" decoding="async"/>
+                    </span>
+                    <span class="tile-title">{item.title}</span>
+                  </button>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+.detail{max-width:1100px;margin:auto;padding-bottom:24px}
+
+/* Kartu putih besar — konsisten dengan detail Photography/Documentary. */
+.surface{padding:clamp(24px,4.5vw,56px)}
+
+.head{margin:0 0 clamp(30px,4.5vw,54px)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#696861;margin:0 0 14px}
+.head-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end}
+.head-row h1{font-size:clamp(2.3rem,6vw,5rem);font-weight:900;letter-spacing:-.06em;line-height:.9;margin:0}
+.intro{margin:0;text-align:right;color:#696861;font-size:clamp(14px,1.6vw,16px);line-height:1.55;max-width:42ch;justify-self:end}
+
+/* Grid galeri — konsisten dengan portfolio Work/Photography. */
+.gallery{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.tile{display:block;text-decoration:none;color:inherit}
+/* Poster/Social Media pakai <button> untuk Lightbox — dinolkan agar
+   visualnya identik dengan tile <a> pada galeri Logo. */
+button.tile{width:100%;padding:0;margin:0;background:none;border:0;border-radius:0;font:inherit;text-align:left;cursor:pointer;-webkit-appearance:none;appearance:none}
+.tile:focus-visible{outline:2px solid #111110;outline-offset:4px;border-radius:14px}
+/* Presentasi portrait (4:5) untuk galeri Graphic Design.
+   Sumber karya adalah SVG landscape (1200×800 = 3:2), jadi `contain` dipakai
+   agar seluruh artwork tetap terlihat utuh: tanpa crop, tanpa stretch.
+   Rongga sisa ditutup warna latar yang sama (#ededea) sehingga frame tetap
+   menyatu dan tidak terlihat seperti "letterbox" yang mengganggu. */
+.tile-media{display:block;position:relative;overflow:hidden;border-radius:14px;background:#ededea;aspect-ratio:4 / 5}
+.tile-media img{width:100%;height:100%;object-fit:contain;display:block;transition:transform .6s var(--ease-out-editorial)}
+.tile:hover .tile-media img,.tile:focus-visible .tile-media img{transform:scale(1.04)}
+.tile-title{display:block;margin-top:14px;font-size:clamp(14px,1.5vw,16px);letter-spacing:-.01em;color:#696861}
+
+@media(max-width:860px){.gallery{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){
+  .head-row{grid-template-columns:1fr;gap:16px;align-items:start}
+  .intro{text-align:left;justify-self:start;max-width:none}
+}
+@media(max-width:520px){.gallery{grid-template-columns:1fr;gap:26px}}
+</style>
+

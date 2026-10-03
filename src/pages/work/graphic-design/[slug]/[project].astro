@@ -1,0 +1,142 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import GlassNav from '../../../../components/GlassNav.astro';
+import {graphicDesign} from '../../../../data/graphicDesign';
+
+// LEVEL 2 — DETAIL PROJECT. HANYA kategori Logo yang punya level detail.
+// Poster & Social Media murni galeri/arsip: TIDAK ada route detail untuk keduanya.
+// Route: /work/graphic-design/logo/<project-slug>
+// Presentasi satu project: guideline sebagai visual utama, lalu filosofi (kiri)
+// dan identitas brand (kanan). Semua field dirender kondisional — field yang
+// tidak ada di data TIDAK diganti placeholder atau konten karangan.
+export function getStaticPaths(){
+  const items = graphicDesign.logos;
+  return items.map((item, i) => ({
+    params: {slug: 'logo', project: item.slug},
+    props: {
+      item,
+      // Cycle navigation (§5): project pertama ← terakhir, terakhir → pertama.
+      // Selalu terisi → tombol tidak pernah hilang di first/last item.
+      previous: items[(i - 1 + items.length) % items.length],
+      next: items[(i + 1) % items.length],
+      position: `${String(i + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}`,
+    },
+  }));
+}
+
+const {item, previous, next, position} = Astro.props;
+const hasPhilosophy = Boolean(item.philosophy);
+const hasBrand = Boolean(item.logoImage || item.brandName);
+const hasSplit = hasPhilosophy || hasBrand;
+// §16 Back deterministik: turun dari slug route, bukan browser history.
+const catBase = `/work/graphic-design/${Astro.params.slug}`;
+---
+
+<BaseLayout title={item.title} hideBackLink>
+  <article class="detail">
+    <div class="card surface">
+      <header class="head" data-reveal>
+        <p class="eyebrow" data-reveal-item>Graphic Design</p>
+        <div class="head-row" data-reveal-item>
+          <div class="head-title">
+            <p class="kicker">Logo / Identity</p>
+            <h1>{item.title}</h1>
+          </div>
+          <p class="intro">{item.brandName ?? item.description}</p>
+        </div>
+      </header>
+
+      {/* VISUAL UTAMA — satu gambar guideline, rasio asli file (tanpa crop). */}
+      <figure class="guideline" data-reveal-media>
+        {item.guidelineImage
+          ? <img src={item.guidelineImage.src} alt={item.guidelineImage.alt} loading="eager" decoding="async" width="1200" height="800"
+              style={item.guidelineImage.ratio ? `aspect-ratio:${item.guidelineImage.ratio}` : undefined}/>
+          : <img src={item.image} alt={item.title} loading="eager" decoding="async" width="1200" height="800" style="aspect-ratio:3 / 2"/>}
+      </figure>
+
+      {/* Dua kolom: filosofi (kiri) + identitas brand (kanan).
+          Bila hanya satu sisi terisi, kolomnya melebar penuh. */}
+      {hasSplit && (
+        <div class={`split${hasPhilosophy && hasBrand ? '' : ' single'}`} data-reveal>
+          {hasPhilosophy && (
+            <section class="col" data-reveal-item>
+              <h2>Logo Philosophy</h2>
+              <p>{item.philosophy}</p>
+            </section>
+          )}
+          {hasBrand && (
+            <section class="col brand" data-reveal-item>
+              <h2>Brand Identity</h2>
+              {item.logoImage && (
+                <div class="brand-logo">
+                  <img src={item.logoImage.src} alt={item.logoImage.alt} loading="lazy" decoding="async"/>
+                </div>
+              )}
+              {item.brandName && <p class="brand-name">{item.brandName}</p>}
+              {item.meta && <p class="brand-meta">{item.meta}</p>}
+            </section>
+          )}
+        </div>
+      )}
+
+      {/* Metadata ringkas — hanya yang tersedia. */}
+      {(item.year || item.role) && (
+        <dl class="facts" data-reveal-item>
+          {item.year && <div><dt>Year</dt><dd>{item.year}</dd></div>}
+          {item.role && <div><dt>Role</dt><dd>{item.role}</dd></div>}
+          <div><dt>Project</dt><dd>{position}</dd></div>
+        </dl>
+      )}
+    </div>
+
+    {/* Navigasi standard: bagian document flow SETELAH konten detail.
+        Back kiri · Prev/Next kanan. Icon-only, tanpa teks. */}
+    <GlassNav
+      backHref={catBase}
+      prevHref={`${catBase}/${previous.slug}`}
+      nextHref={`${catBase}/${next.slug}`}
+      backLabel="Back to Logo gallery"
+    />
+  </article>
+</BaseLayout>
+
+<style>
+.detail{max-width:1100px;margin:auto;padding-bottom:24px}
+.surface{padding:clamp(24px,4.5vw,56px)}
+
+.head{margin:0 0 clamp(30px,4.5vw,54px)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#696861;margin:0 0 14px}
+.head-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end}
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#696861;margin:0 0 10px}
+.head-title h1{font-size:clamp(2.1rem,5.4vw,4.5rem);font-weight:900;letter-spacing:-.06em;line-height:.9;margin:0}
+.intro{margin:0;text-align:right;color:#696861;font-size:clamp(14px,1.6vw,16px);line-height:1.55;max-width:42ch;justify-self:end}
+
+/* Visual utama — rasio asli file, tanpa crop/stretch. */
+.guideline{margin:0;border-radius:14px;overflow:hidden;background:#ededea}
+.guideline img{display:block;width:100%;height:auto;border-radius:14px}
+
+/* Filosofi (kiri) + identitas brand (kanan). */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);margin-top:clamp(34px,5vw,60px)}
+/* Hanya satu sisi terisi -> satu kolom penuh, tanpa rongga kosong. */
+.split.single{grid-template-columns:minmax(0,1fr);max-width:640px}
+.split.single .brand-logo{max-width:420px}
+.col h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#696861;font-weight:400;margin:0 0 16px}
+.col p{margin:0;font-size:clamp(15px,1.7vw,17px);line-height:1.65;max-width:46ch}
+.brand{display:flex;flex-direction:column;align-items:flex-start}
+.brand-logo{width:100%;border-radius:14px;overflow:hidden;background:#ededea}
+.brand-logo img{display:block;width:100%;height:auto}
+.brand-name{margin:18px 0 0;font-size:clamp(16px,1.9vw,19px);letter-spacing:-.01em}
+.brand-meta{margin:6px 0 0 !important;font-size:12px !important;letter-spacing:.14em;text-transform:uppercase;color:#696861}
+
+/* Metadata ringkas. */
+.facts{display:flex;flex-wrap:wrap;gap:clamp(26px,4vw,54px);margin:clamp(34px,5vw,58px) 0 0;padding-top:26px}
+.facts div{margin:0}
+.facts dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#696861;margin:0 0 6px}
+.facts dd{margin:0;font-size:clamp(14px,1.6vw,16px)}
+
+@media(max-width:760px){
+  .head-row{grid-template-columns:1fr;gap:16px;align-items:start}
+  .intro{text-align:left;justify-self:start;max-width:none}
+  .split{grid-template-columns:1fr}
+}
+</style>

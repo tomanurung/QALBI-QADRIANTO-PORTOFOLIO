@@ -1,0 +1,343 @@
+---
+interface Item { title: string; subtitle?: string; image: string; poster?: string; video?: string; href: string; }
+interface Props { items: Item[]; }
+const { items } = Astro.props;
+// Ekstrak VIDEO_ID dari berbagai format URL YouTube (watch?v=, youtu.be/, embed/).
+function youtubeId(url?: string): string {
+  if (!url) return '';
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{11}$/.test(url) ? url : '';
+}
+// Thumbnail otomatis dari VIDEO_ID; fallback ke poster lokal (SVG) bila belum tersedia.
+function ytThumb(id: string, fallback: string): string {
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : fallback;
+}
+---
+<div class="doc-carousel" data-doc-carousel>
+  <div class="track" tabindex="0" aria-label="Use arrow keys to browse">
+    {items.map((item, i) => {
+      const ytId = youtubeId(item.video);
+      const thumb = item.poster ? ytThumb(ytId, item.poster) : ytThumb(ytId, item.image);
+      return (
+        <a class="slide media" href={item.href} aria-label={item.title} data-slide>
+          <img
+            class="doc-thumb"
+            src={thumb}
+            alt={item.subtitle || item.title}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            data-thumb
+            data-poster={item.poster || item.image}
+            onerror={`this.onerror=null;this.src=this.dataset.poster`}
+          />
+          {ytId ? <div class="yt-mount" data-yt-id={ytId}></div> : null}
+          <span class="overlay">
+            <span class="doc-title" data-title>{item.title}</span>
+          </span>
+        </a>
+      );
+    })}
+  </div>
+  <a class="detail-link glass" href={items[0]?.href} data-detail>Selengkapnya</a>
+  <div class="controls">
+    <div class="nav-pill glass">
+      <div class="dots">
+        {items.map((_, i) => (
+          <button data-index={i} aria-label={`Slide ${i + 1}`} aria-pressed={i === 0}></button>
+        ))}
+      </div>
+    </div>
+    <button class="toggle-btn glass" type="button" data-toggle aria-label="Play/Pause" aria-pressed="false">
+      <svg data-icon-play viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z" /></svg>
+      <svg data-icon-pause viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg>
+    </button>
+  </div>
+</div>
+<style>
+  .doc-carousel{text-align:center;position:relative}
+  .track{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 10%;touch-action:pan-x pan-y}
+  .track::-webkit-scrollbar{display:none}
+  .slide{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:16/9;background:#ddd;user-select:none;position:relative;overflow:hidden}
+  .slide img{pointer-events:none;display:block;width:100%;height:100%;object-fit:cover}
+  .slide-video{display:block;width:100%;height:100%;object-fit:cover}
+  /* Media YouTube: thumbnail/fallback + iframe + custom play, mengisi penuh wadah 16:9 */
+  .doc-thumb{pointer-events:none;display:block;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1;transition:opacity .35s var(--ease-out-editorial)}
+  .yt-mount{position:absolute;inset:0;z-index:0;width:100%;height:100%}
+  /* YT.Player MENGGANTI elemen mount dengan <iframe>, jadi targetkan langsung (bukan descendant). */
+  .yt-mount iframe,
+  iframe.yt-frame,
+  .doc-carousel iframe{display:block;position:absolute;inset:0;width:100% !important;height:100% !important;border:0}
+  .overlay{position:absolute;top:0;left:0;right:0;z-index:3;padding:18px 22px;text-align:left;pointer-events:none;transition:opacity .3s var(--ease-out-editorial);background:linear-gradient(to bottom,rgba(0,0,0,.42),rgba(0,0,0,0))}
+  .doc-title{display:inline-block;font-size:clamp(18px,2.4vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.15;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.55),0 1px 6px rgba(0,0,0,.45),0 2px 14px rgba(0,0,0,.35)}
+  .detail-link{display:inline-block;border-radius:99px;padding:10px 20px;font-size:10.5px;color:#111110;background:rgba(255,255,255,.3);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(17,17,16,.12);transition:opacity .3s var(--ease-out-editorial)}
+  /* Desktop: tombol di kanan atas area media, rata atas dengan judul */
+  @media(min-width:601px){
+    .detail-link{position:absolute;top:18px;right:calc(10% + 22px);z-index:2}
+  }
+  /* Mobile: tombol kembali ke bawah carousel */
+  @media(max-width:600px){
+    .track{padding:0 6%;gap:12px}
+    .overlay{padding:12px 14px}
+    .detail-link{margin:20px auto 0}
+  }
+  /* Kontrol carousel: nav (dots) dalam pill glass + tombol toggle play/pause bulat */
+  .controls{display:flex;justify-content:center;align-items:center;gap:14px;margin:24px 0;position:relative;transition:transform .45s var(--ease-out-editorial);will-change:transform}
+  .doc-carousel[data-nested=true] .controls{transform:translateY(calc(-0.1 * var(--slideH,0px)))}
+  .nav-pill{display:flex;align-items:center;height:44px;box-sizing:border-box;border-radius:99px;padding:0 18px;background:rgba(255,255,255,.3);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(17,17,16,.12)}
+  .dots{display:flex;gap:9px;align-items:center}
+  .dots button{width:8px;height:8px;border:0;border-radius:99px;background:#c4c1ba;padding:0;cursor:pointer;transition:width .4s var(--ease-out-editorial)}
+  .dots button[aria-pressed=true]{width:32px;background:var(--ink)}
+  .toggle-btn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border-radius:99px;background:rgba(255,255,255,.3);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(17,17,16,.12);color:#111110;cursor:pointer;transition:background .3s var(--ease-out-editorial),opacity .3s var(--ease-out-editorial)}
+  .toggle-btn svg{display:block;width:18px;height:18px}
+  .toggle-btn:hover{background:rgba(255,255,255,.5)}
+  .toggle-btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+  .toggle-btn svg[data-icon-pause]{display:none}
+  .doc-carousel[data-playing=true] .toggle-btn svg[data-icon-play]{display:none}
+  .doc-carousel[data-playing=true] .toggle-btn svg[data-icon-pause]{display:block}
+  /* Reduced motion: posisi tetap berpindah 10%, tapi tanpa transisi */
+  @media(prefers-reduced-motion:reduce){
+    .controls{transition:none}
+  }
+  /* Sembunyikan judul + tombol saat video sedang diputar */
+  .doc-carousel[data-playing=true] .overlay{opacity:0}
+  .doc-carousel[data-playing=true] .detail-link{opacity:0;pointer-events:none}
+  /* Fade out→in saat perpindahan slide */
+  .doc-carousel[data-fading=true] .detail-link{opacity:0}
+</style>
+<script>
+  interface YTPlayerLike {
+    playVideo(): void; pauseVideo(): void; mute(): void; destroy(): void;
+    getPlayerState(): number;
+    getIframe(): HTMLIFrameElement;
+  }
+  declare global {
+    interface Window {
+      YT?: { Player: new (el: HTMLElement | string, opts: Record<string, unknown>) => YTPlayerLike; PlayerState: { PLAYING: number; PAUSED: number; ENDED: number } };
+      onYouTubeIframeAPIReady?: () => void;
+      __docYtApi?: 'idle' | 'loading' | 'ready';
+      __docYtQueue?: Array<() => void>;
+    }
+  }
+
+  // Inisialisasi API YouTube yang idempoten: aman dipanggil berkali-kali,
+  // baik saat API sudah siap maupun masih loading.
+  function whenYTReady(cb: () => void) {
+    if (window.YT && window.YT.Player) { cb(); return; }
+    window.__docYtQueue = window.__docYtQueue || [];
+    window.__docYtQueue.push(cb);
+    if (window.__docYtApi !== 'loading') {
+      window.__docYtApi = 'loading';
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        window.__docYtApi = 'ready';
+        (window.__docYtQueue || []).forEach((fn) => fn());
+        window.__docYtQueue = [];
+        if (typeof prev === 'function') prev();
+      };
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+  }
+
+  function initDocCarousels() {
+    document.querySelectorAll<HTMLElement>('[data-doc-carousel]').forEach((root) => {
+      if (root.dataset.ready) return;
+      root.dataset.ready = 'true';
+      const track = root.querySelector<HTMLElement>('.track')!;
+      const slides = [...track.querySelectorAll<HTMLAnchorElement>('.slide')];
+      const dots = [...root.querySelectorAll<HTMLButtonElement>('[data-index]')];
+      const detail = root.querySelector<HTMLAnchorElement>('[data-detail]')!;
+      const toggle = root.querySelector<HTMLButtonElement>('[data-toggle]');
+      let active = 0;
+      let lastScroll = track.scrollLeft;
+      let idleTimer: ReturnType<typeof setTimeout> | undefined;
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+      const players: (YTPlayerLike | null)[] = slides.map(() => null);
+      let sectionVisible = true;      // Lapis 1 (di-guard IntersectionObserver bila ada)
+      let lastPlayAt = 0;             // guard anti-tumpuk saat scroll cepat
+      let trailingSync: ReturnType<typeof setTimeout> | undefined; // resync tertunda
+
+      // Registry player untuk lifecycle (siap destroy bila halaman di-reuse).
+      const playerRegistry: YTPlayerLike[] = ((root as unknown as Record<string, unknown>).__players as YTPlayerLike[]) || [];
+      (root as unknown as Record<string, unknown>).__players = playerRegistry;
+
+      // Inti autoplay dua lapis: hanya slide aktif bermain, hanya bila section terlihat.
+      const pauseAll = () => players.forEach((p) => { if (p) { try { p.pauseVideo(); } catch { /* noop */ } } });
+      const syncPlayback = () => {
+        if (!sectionVisible) { root.dataset.playing = 'false'; if (toggle) toggle.setAttribute('aria-pressed', 'false'); pauseAll(); return; }
+        const now = Date.now();
+        // Debounce scroll cepat, tetapi jangan MENJATUHKAN sinkronisasi:
+        // jadwalkan trailing sync agar state akhir selalu benar.
+        if (now - lastPlayAt < 250) {
+          clearTimeout(trailingSync);
+          trailingSync = setTimeout(() => { trailingSync = undefined; syncPlayback(); }, 250);
+          return;
+        }
+        lastPlayAt = now;
+        // data-playing mencerminkan keadaan slide aktif (bukan state global lepas).
+        root.dataset.playing = String(!!players[active] && players[active]!.getPlayerState() === 1 /* PLAYING */);
+        if (toggle) toggle.setAttribute('aria-pressed', root.dataset.playing);
+        players.forEach((p, i) => {
+          if (!p) return;
+          try {
+            if (i === active) {
+              if (p.getPlayerState() !== 1 /* PLAYING */) { p.mute(); p.playVideo(); }
+            } else if (p.getPlayerState() === 1) {
+              p.pauseVideo();
+            }
+          } catch { /* noop */ }
+        });
+      };
+
+      // Buat player YouTube untuk tiap mount (idempoten, aman saat API sudah/sedang dimuat).
+      const mounts = [...root.querySelectorAll<HTMLElement>('[data-yt-id]')];
+      if (mounts.length) {
+        whenYTReady(() => {
+          mounts.forEach((mount) => {
+            const idx = slides.indexOf(mount.closest('.slide') as HTMLAnchorElement);
+            if (idx < 0) return;
+            const thumb = slides[idx].querySelector<HTMLImageElement>('[data-thumb]');
+            playerRegistry.push(new window.YT!.Player(mount, {
+              videoId: mount.dataset.ytId,
+              playerVars: { autoplay: 0, mute: 1, controls: 1, rel: 0, playsinline: 1, modestbranding: 1 },
+              events: {
+                onReady: (e: { target: YTPlayerLike }) => {
+                  players[idx] = e.target;
+                  try {
+                    const frame = e.target.getIframe();
+                    // YT.Player mengganti mount dengan iframe; paksa penuh wadah 16:9 via inline style.
+                    frame.classList.add('yt-frame');
+                    frame.style.position = 'absolute';
+                    frame.style.inset = '0';
+                    frame.style.width = '100%';
+                    frame.style.height = '100%';
+                    frame.style.border = '0';
+                    frame.setAttribute('title', slides[idx].getAttribute('aria-label') || '');
+                  } catch { /* noop */ }
+                  syncPlayback();
+                },
+                onStateChange: (e: { data: number }) => {
+                  const YTS = window.YT!.PlayerState;
+                  if (e.data === YTS.PLAYING) {
+                    // Judul hanya hilang jika yang main adalah slide AKTIF.
+                    if (idx === active) {
+                      root.dataset.playing = 'true';
+                      if (toggle) toggle.setAttribute('aria-pressed', 'true');
+                    }
+                    if (thumb) thumb.style.opacity = '0';
+                  } else if (e.data === YTS.PAUSED || e.data === YTS.ENDED) {
+                    // Hanya slide AKTIF yang boleh menurunkan data-playing.
+                    // Player non-aktif (mis. jeda otomatis) tidak memengaruhi state.
+                    if (idx !== active) return;
+                    root.dataset.playing = 'false';
+                    if (toggle) toggle.setAttribute('aria-pressed', 'false');
+                    if (thumb) thumb.style.opacity = '';
+                  }
+                },
+              },
+            }));
+          });
+        });
+      }
+
+      // Kontrol play/pause tunggal (bawah): mencerminkan slide aktif via data-playing.
+      // Tidak menyimpan state sendiri — hanya membaca root.dataset.playing.
+      if (toggle) {
+        toggle.addEventListener('click', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          const p = players[active];
+          if (!p) return;
+          try {
+            if (root.dataset.playing === 'true') { p.pauseVideo(); }
+            else { p.mute(); p.playVideo(); }
+          } catch { /* noop */ }
+        });
+      }
+
+      // Tinggi media (10% dipakai CSS via --slideH) → proporsional desktop & mobile.
+      const setSlideHeight = () => {
+        const h = slides[active]?.getBoundingClientRect().height || 0;
+        root.style.setProperty('--slideH', h + 'px');
+      };
+      setSlideHeight();
+      window.addEventListener('resize', setSlideHeight, { passive: true });
+
+      // Trigger b1 + hysteresis (F1/F3): nav masuk saat bagian bawah carousel
+      // keluar dari viewport atas (ambang berbeda untuk masuk vs keluar).
+      const ENTER = 60;   // masuk: bottom media < 60px
+      const EXIT = 120;   // keluar: bottom media > 120px
+      const applyNested = () => {
+        const bottom = slides[active]?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY;
+        const nested = root.dataset.nested === 'true';
+        if (!nested && bottom < ENTER) root.dataset.nested = 'true';
+        else if (nested && bottom > EXIT) root.dataset.nested = 'false';
+      };
+      root.dataset.nested = 'false';
+      let rafPending = false;
+      window.addEventListener('scroll', () => {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => { applyNested(); rafPending = false; });
+      }, { passive: true });
+      applyNested();
+
+      // Lapis 1: player hanya aktif saat section carousel terlihat di viewport (khusus /work).
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((en) => {
+            // Eksplisit: dianggap terlihat hanya bila ≥25% section tampak.
+            const ratio = en.intersectionRatio;
+            const area = en.boundingClientRect.width * en.boundingClientRect.height;
+            const visible = area > 0 ? ratio >= 0.25 : en.isIntersecting;
+            sectionVisible = visible;
+            if (!visible) {
+              root.dataset.playing = 'false';
+              if (toggle) toggle.setAttribute('aria-pressed', 'false');
+            }
+          });
+          syncPlayback();
+        }, { threshold: [0, 0.25, 0.5, 1] });
+        io.observe(root);
+      }
+
+      const go = (i: number) => {
+        i = Math.max(0, Math.min(slides.length - 1, i));
+        track.scrollTo({ left: slides[i].offsetLeft - track.offsetLeft - (track.clientWidth - slides[i].clientWidth) / 2, behavior: reduced.matches ? 'instant' : 'smooth' });
+      };
+      dots.forEach((dot, i) => dot.addEventListener('click', () => go(i)));
+      track.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); go(active + (e.key === 'ArrowRight' ? 1 : -1)); }
+      });
+      track.addEventListener('scroll', () => {
+        // 1) Fade out saat posisi bergerak melewati threshold (deteksi delta scroll)
+        const pos = track.scrollLeft;
+        if (Math.abs(pos - lastScroll) > 6) {
+          lastScroll = pos;
+          root.dataset.fading = 'true';
+        }
+        // 2) Fade in saat scroll berhenti (debounce)
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+          root.dataset.fading = 'false';
+          lastScroll = track.scrollLeft;
+        }, reduced.matches ? 0 : 140);
+        // 3) Perbarui slide aktif + href tombol
+        const center = track.getBoundingClientRect().left + track.clientWidth / 2;
+        let nearest = 0, distance = Infinity;
+        slides.forEach((s, i) => { const r = s.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - center); if (d < distance) { distance = d; nearest = i; } });
+        if (nearest !== active) {
+          active = nearest;
+          root.dataset.playing = 'false';   // reset optimistis: judul muncul sampai video aktif benar-benar PLAYING
+          if (toggle) toggle.setAttribute('aria-pressed', 'false');
+          dots.forEach((d, i) => d.setAttribute('aria-pressed', String(i === active)));
+          detail.href = slides[active].href;
+          setSlideHeight();
+          syncPlayback();
+        }
+      }, { passive: true });
+    });
+  }
+  initDocCarousels();
+  document.addEventListener('astro:page-load', initDocCarousels);
+</script>

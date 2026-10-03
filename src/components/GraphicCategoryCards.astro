@@ -1,0 +1,39 @@
+---
+import type { GraphicCategoryCard } from '../data/types';
+interface Props {
+  cards: readonly GraphicCategoryCard[];
+  /** Gambar cover per kategori, di-key berdasarkan `card.key`. */
+  thumbs: Record<string, {src: string; alt: string}>;
+}
+const { cards, thumbs } = Astro.props;
+---
+
+<section class="graphic-categories">
+  <ul class="cards">
+    {cards.map((card) => (
+      <li>
+        <a class="gcard" href={`/work/graphic-design/${card.slug}`}>
+          <span class="thumb">
+            {thumbs[card.key] && <img src={thumbs[card.key].src} alt={thumbs[card.key].alt} loading="lazy" decoding="async" />}
+          </span>
+          <span class="label">{card.label}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <style>
+    .graphic-categories { margin: 0; }
+    .cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+    .gcard { display: block; padding: 0; margin: 0; background: none; border: 0; border-radius: 0; box-shadow: none; text-decoration: none; color: inherit; }
+    .thumb { display: block; position: relative; overflow: hidden; border-radius: 14px; background: #ededea; aspect-ratio: 4 / 5; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s cubic-bezier(.22,1,.336,1); }
+    .gcard:hover .thumb img, .gcard:focus-visible .thumb img { transform: scale(1.04); }
+    .gcard:focus-visible { outline: 2px solid #111110; outline-offset: 4px; border-radius: 14px; }
+    .label { display: block; margin-top: 18px; text-align: center; font-size: clamp(17px, 1.9vw, 21px); letter-spacing: -.02em; background: none; }
+
+    /* Jumlah karya tidak ditampilkan — permintaan final. */
+    @media (max-width: 860px) { .cards { grid-template-columns: 1fr; gap: 34px; } }
+  </style>
+
+</section>

@@ -1,0 +1,87 @@
+---
+// NAVIGASI STANDARD untuk SELURUH halaman detail portfolio
+// (Graphic Design / Documentary / Photography). Satu sistem visual untuk semua.
+//
+// Penempatan: DI DALAM normal document flow, SETELAH seluruh konten detail
+// (bukan fixed, bukan sticky, bukan overlay). Back di tepi kiri container,
+// Prev+Next berkelompok di tepi kanan container — jadi batasnya mengikuti
+// container halaman, bukan viewport.
+//
+// Resep glass TERKUNCI dari DOC-CAROUSEL-LOCK.md §7:
+//   background:rgba(255,255,255,.3) · backdrop-filter:blur(14px) saturate(180%)
+//   border:1px solid rgba(255,255,255,.55) · box-shadow:0 8px 24px rgba(17,17,16,.12)
+// Ketiga tombol WAJIB identik: 44×44, radius 50%, ikon 18×18, hover sama.
+// Jangan membuat resep glass baru.
+//
+// prevHref/nextHref selalu diisi oleh pemanggil (cyclic) sehingga tombol
+// tidak pernah disabled/hilang di project pertama maupun terakhir.
+interface Props {
+  /** Tujuan tombol Back (ikon arrow-left). */
+  backHref: string;
+  /** Project sebelumnya dalam kategori yang sama (cyclic). */
+  prevHref: string;
+  /** Project berikutnya dalam kategori yang sama (cyclic). */
+  nextHref: string;
+  /** Label aksesibilitas Back; category-aware, mis. "Back to Documentary". */
+  backLabel?: string;
+  prevLabel?: string;
+  nextLabel?: string;
+}
+const {backHref, prevHref, nextHref, backLabel = 'Back to gallery', prevLabel = 'Previous project', nextLabel = 'Next project'} = Astro.props;
+---
+
+<nav class="glass-nav" aria-label="Project navigation">
+  <a class="gbtn" href={backHref} aria-label={backLabel}>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+  <div class="group">
+    <a class="gbtn" href={prevHref} aria-label={prevLabel} rel="prev">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5l-8 7 8 7z" fill="currentColor"/></svg>
+    </a>
+    <a class="gbtn" href={nextHref} aria-label={nextLabel} rel="next">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l8 7-8 7z" fill="currentColor"/></svg>
+    </a>
+  </div>
+</nav>
+
+<style>
+/* Layout: IN-FLOW (bukan fixed/sticky). Back di tepi kiri, Prev+Next di tepi
+   kanan. Karena nav ikut content container halaman, tepinya otomatis selaras
+   dengan konten — bukan menempel viewport. */
+.glass-nav{
+  position:static;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  margin:clamp(48px,7vw,88px) 0;
+}
+.group{display:flex;align-items:center;gap:12px}
+
+/* Satu resep glass untuk semua tombol — identik. */
+.gbtn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:44px;height:44px;padding:0;box-sizing:border-box;border-radius:50%;
+  color:#111110;text-decoration:none;cursor:pointer;
+  background:rgba(255,255,255,.3);
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:0 8px 24px rgba(17,17,16,.12);
+  transition:background .25s var(--ease-out-editorial),transform .25s var(--ease-out-editorial);
+}
+.gbtn svg{display:block;width:18px;height:18px}
+.gbtn:hover,.gbtn:focus-visible{background:rgba(255,255,255,.5)}
+.gbtn:hover{transform:scale(1.03)}
+.gbtn:focus-visible{outline:2px solid var(--ink);outline-offset:3px;transform:none}
+.gbtn:active{background:rgba(255,255,255,.62);transform:scale(.96)}
+
+/* prev/next selalu ada (cyclic) — tidak ada state disabled. */
+
+@media(max-width:520px){
+  .glass-nav{gap:10px}
+  .group{gap:10px}
+}
+@media(max-width:400px){
+  /* Tetap bulat & terpisah; tombol tidak terpotong, tidak menyebabkan overflow. */
+  .glass-nav{gap:8px}
+  .group{gap:8px}
+}
+</style>

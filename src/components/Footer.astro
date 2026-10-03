@@ -1,0 +1,52 @@
+---
+import { site, activeNav } from '../data/site';
+const photoAvailable = true;
+const introLead = 'Let’s connect, share knowledge, and build meaningful collaborations.';
+const hasIntroLead = site.footer.intro.startsWith(introLead);
+---
+<footer data-reveal>
+<div class="intro"><p>{hasIntroLead ? <><strong>{introLead}</strong>{site.footer.intro.slice(introLead.length)}</> : site.footer.intro}</p><nav aria-label="Footer navigation">{site.nav.map(n=><a href={n.href} aria-current={activeNav(Astro.url.pathname,n.href) ? 'page' : undefined}>{n.label.toLowerCase()}</a>)}</nav>
+<div class="glass links">
+{site.contacts.instagramUrl ? <a href={site.contacts.instagramUrl} target="_blank" rel="noopener noreferrer">Instagram</a> : <span aria-disabled="true">Instagram</span>}
+<a href={`mailto:${site.contacts.email}`} class="email-link" data-email={site.contacts.email}>Email</a>
+{site.cv.url ? <a href={site.cv.url} target="_blank" rel="noopener noreferrer">{site.cv.label}</a> : <span aria-disabled="true">{site.cv.label}</span>}
+</div>
+</div>
+<div class="bottom">
+{photoAvailable ? <img src={site.footer.photo.src} alt={site.footer.photo.alt} /> : <div class="missing">Foto footer asli belum tersedia</div>}
+</div><div class="line"></div>
+</footer>
+<script>
+  // Buka Gmail compose di browser (tab baru); mailto: tetap jadi fallback
+  document.querySelectorAll<HTMLAnchorElement>('a.email-link[data-email]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      const email = a.dataset.email;
+      if (!email) return; // biarkan mailto: bawaan berjalan sebagai fallback
+      // Hormati klik dengan modifier (ctrl/cmd/shift = buka mailto di tab/jendela baru)
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+      const w = window.open(url, '_blank', 'noopener,noreferrer');
+      // Jika popup diblokir, fallback ke mailto:
+      if (!w) window.location.href = a.href;
+    });
+  });
+</script>
+<style>
+/* Motion: footer reveal — opacity only (no translateY) to preserve the
+   negative-margin composition. Gated by [data-in] from BaseLayout observer. */
+[data-in] footer[data-reveal] .intro{animation:m-footer-fade .6s var(--ease-out-editorial) both}
+[data-in] footer[data-reveal] .bottom{animation:m-footer-fade .6s .1s var(--ease-out-editorial) both}
+[data-in] footer[data-reveal] .line{transform-origin:left center;animation:m-footer-line .7s .18s var(--ease-out-editorial) both}
+@keyframes m-footer-fade{from{opacity:0}to{opacity:1}}
+@keyframes m-footer-line{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){
+  [data-in] footer[data-reveal] .intro,
+  [data-in] footer[data-reveal] .bottom,
+  [data-in] footer[data-reveal] .line{animation:none!important}
+}
+footer .intro{row-gap:32px}
+.intro .links{grid-column:2;justify-self:end;position:relative;z-index:2;margin-bottom:0;white-space:nowrap;background:rgba(255,255,255,.5);backdrop-filter:blur(16px) saturate(200%);-webkit-backdrop-filter:blur(16px) saturate(200%);border:1px solid rgba(255,255,255,.78);box-shadow:0 12px 34px rgba(17,17,16,.08),inset 0 1px 0 rgba(255,255,255,.75)}
+.links{position:relative;isolation:isolate}.links>a{position:relative;z-index:2}
+@media(max-width:600px){footer .intro{row-gap:32px}.intro .links{grid-column:1 / -1;max-width:100%;gap:clamp(8px,3vw,20px);padding:18px clamp(10px,3vw,18px)}}
+</style> <style>footer{max-width:1240px;margin:140px auto 0;padding:60px 28px 40px}.intro{display:grid;grid-template-columns:2fr 1fr;gap:70px}.intro p{font-size:clamp(16px,1.8vw,22px);line-height:1.35;font-weight:400;max-width:700px;margin:0;letter-spacing:-.02em}.intro p strong,nav a{font-weight:700}nav{display:flex;flex-direction:column;gap:12px;align-items:flex-end;text-transform:capitalize}nav a{position:relative;isolation:isolate}.bottom{display:flex;align-items:flex-end;gap:40px;margin-top:-230px;position:relative;z-index:1}.bottom img,.missing{width:400px;height:440px;object-fit:contain}.missing{display:flex;align-items:center;font-size:12px;color:#777}.links{display:flex;gap:28px;padding:20px 30px;border-radius:99px;margin-bottom:30px;font-size:13px}[aria-disabled]{opacity:.5}.line{height:4px;background:var(--ink);margin-top:-185px}@media(max-width:600px){.intro{grid-template-columns:1fr auto;gap:25px}.intro p{font-size:16px}nav{font-size:12px}.bottom{gap:12px;flex-wrap:wrap;margin-top:-230px}.bottom img{width:200px;height:220px}.links{gap:20px;padding:18px}.missing{height:130px}.line{margin-top:-40px}}</style>

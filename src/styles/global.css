@@ -1,0 +1,60 @@
+@import "tailwindcss";
+:root{--paper:#F7F5F0;--ink:#111110;--ease-out-editorial:cubic-bezier(.22,1,.36,1);font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:var(--ink);background:var(--paper)}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper)}a{color:inherit;text-decoration:none}button{font:inherit;color:inherit}.page{max-width:1240px;margin:auto;padding:150px 28px 0}.display{font-size:clamp(4rem,13vw,12rem);font-weight:900;letter-spacing:-.08em;line-height:.86;margin:0}.heading{font-size:clamp(3rem,8vw,8rem);font-weight:900;letter-spacing:-.07em;line-height:.9;margin:0}.muted{color:#696861}.glass{background:#ffffffa6;backdrop-filter:blur(20px) saturate(180%);border:1px solid #ffffffb3;box-shadow:0 10px 30px #0000000f}.card{background:#fff;border-radius:14px;padding:28px}.global-back{display:flex;justify-content:center;margin:64px 0 8px}.media{overflow:hidden;border-radius:14px}.media img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .45s var(--ease-out-editorial)}.media:hover img{transform:scale(1.03)}:focus-visible{outline:2px solid var(--ink);outline-offset:4px}@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* ===========================================================
+   MOTION LANGUAGE (Level 1–3). Restrained, typography-first.
+   Level 4 (UI micro-interaction) lives in component styles.
+   All reveal motion is disabled under prefers-reduced-motion.
+   =========================================================== */
+
+/* LEVEL 1 — PAGE: fade + subtle rise + blur→sharp. */
+@keyframes m-page-in{from{opacity:0;filter:blur(6px);transform:translateY(10px)}to{opacity:1;filter:blur(0);transform:none}}
+
+/* LEVEL 2 — TYPOGRAPHY: line/element reveal, staggered. */
+@keyframes m-type-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* LEVEL 3 — MEDIA: reveal + subtle scale (1.02 → 1). */
+@keyframes m-media-in{from{opacity:0;transform:scale(1.02)}to{opacity:1;transform:none}}
+
+/* Page surface: applies on first load and on every soft navigation. */
+main.page{animation:m-page-in .55s var(--ease-out-editorial) both}
+
+/* Typography reveal — opt in by adding [data-reveal] to a container.
+   Children marked [data-reveal-item] fade+rise in sequence.
+   Gate: animation only runs once ancestor has [data-in] (set by the
+   IntersectionObserver in BaseLayout). Without JS the gate is absent,
+   so content renders static and fully visible — progressive enhancement. */
+[data-in][data-reveal] > [data-reveal-item],
+[data-in][data-reveal][data-reveal-item]{animation:m-type-in .6s var(--ease-out-editorial) both}
+[data-in][data-reveal] > :nth-child(1)[data-reveal-item]{animation-delay:.05s}
+[data-in][data-reveal] > :nth-child(2)[data-reveal-item]{animation-delay:.12s}
+[data-in][data-reveal] > :nth-child(3)[data-reveal-item]{animation-delay:.19s}
+[data-in][data-reveal] > :nth-child(4)[data-reveal-item]{animation-delay:.26s}
+[data-in][data-reveal] > :nth-child(5)[data-reveal-item]{animation-delay:.33s}
+
+/* Media reveal — opt in with [data-reveal-media] on a figure/div wrapper.
+   Same [data-in] gate as above. */
+[data-in][data-reveal-media]{animation:m-media-in .7s var(--ease-out-editorial) both}
+[data-in][data-reveal-media] img,[data-in][data-reveal-media] video{will-change:transform}
+
+@media(prefers-reduced-motion:reduce){
+  main.page,[data-in][data-reveal] > [data-reveal-item],[data-in][data-reveal][data-reveal-item],[data-in][data-reveal-media]{animation:none!important}
+}
+
+/* ===========================================================
+   CHAPTER TRANSITION (directional). Paired with the slideY
+   animation object in BaseLayout.astro. Vertical slide with a
+   gentle opacity handoff — cinematic, no white flash.
+   =========================================================== */
+@keyframes chatSlideOutUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-8vh)}}
+@keyframes chatSlideInUp{from{opacity:0;transform:translateY(8vh)}to{opacity:1;transform:translateY(0)}}
+@keyframes chatSlideOutDown{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(8vh)}}
+@keyframes chatSlideInDown{from{opacity:0;transform:translateY(-8vh)}to{opacity:1;transform:translateY(0)}}
+
+/* Kill the default soft page animation while a chapter transition is running,
+   so the two do not fight each other. */
+html[data-nav] main.page{animation:none}
+
+@media(prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root){animation:none!important}
+}

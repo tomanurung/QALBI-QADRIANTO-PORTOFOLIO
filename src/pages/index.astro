@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../data/site';
+---
+<!-- FINAL LOCK: Hero content/layout approved. See HOME-FINAL.md. -->
+<BaseLayout title="PORTFOLIO">
+<section class="hero-sec" data-reveal>
+<h1 class="display" data-reveal-item>PORTFOLIO</h1>
+<div class="identity" data-reveal-item><strong>{site.name.toUpperCase()}</strong><p>{site.role}</p><span>{site.location}</span></div>
+<div class="home-grid">{site.nav.filter(n=>n.href!=='/').map(n=><a href={n.href}><span>{n.label}</span></a>)}</div>
+</section>
+</BaseLayout>
+
+<style>
+h1.display{text-align:center;font-size:clamp(3rem,17vw,15rem)}
+div.identity{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+div.identity{margin-top:10px;margin-bottom:90px}
+div.identity > strong{transform:translateX(8px)}
+div.identity p{max-width:none;white-space:nowrap;text-align:center}
+@media(max-width:1100px){div.identity{grid-template-columns:1fr 2fr 1fr}div.identity p{white-space:normal}}
+@media(max-width:650px){div.identity{grid-template-columns:1fr}div.identity p{text-align:left}}
+@media(max-width:650px){div.identity > strong{transform:none}}
+.hero-sec{padding-bottom:40px}
+.identity{display:grid;grid-template-columns:1fr 2fr 1fr;gap:32px;align-items:center;margin:35px 0 65px;font-size:13px}
+.identity p{color:#666;max-width:410px}
+.identity span{text-align:right}
+.home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.home-grid a{display:flex;align-items:flex-end;justify-content:center;aspect-ratio:3/4;background:#d7d4cb;border-radius:14px;padding:30px;font-weight:800;font-size:22px;transition:background .4s}
+.home-grid a:hover{background:#c7c3b8}
+@media(max-width:650px){.identity{grid-template-columns:1fr;gap:6px}.identity span{text-align:left}.home-grid{grid-template-columns:1fr}}
+</style>
+

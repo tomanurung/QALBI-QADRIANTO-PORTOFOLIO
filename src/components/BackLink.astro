@@ -1,0 +1,10 @@
+---
+interface Props { href: string; label?: string; }
+const { href, label = 'Back' } = Astro.props;
+---
+<a class="back-link" href={href}>← {label}</a>
+<style>
+.back-link{display:inline-flex;align-items:center;padding:10px 18px;border:1px solid transparent;border-radius:99px;font-size:13px;transition:background .25s var(--ease-out-editorial),border-color .25s var(--ease-out-editorial);}
+.back-link:hover,.back-link:focus-visible,.back-link:active{background:rgba(255,255,255,.65);border-color:rgba(17,17,16,.16)}
+.back-link:active{background:rgba(17,17,16,.06)}
+</style>
