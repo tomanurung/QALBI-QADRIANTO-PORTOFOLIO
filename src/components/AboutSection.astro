@@ -15,7 +15,9 @@ import { site, aboutBio, experience, tools, capabilities, education, languages }
   .bio{grid-column:2;grid-row:1}
   .about-intro p{font-size:22px;line-height:1.4;max-width:650px}
   /* Ukuran/spacing/typography = link group footer (.links). Glass = tombol "Selengkapnya" Documentary (.detail-link). */
-  .contact-pill{grid-column:2;grid-row:2;align-self:end;justify-self:start;position:relative;z-index:2;transform:translate(310px,105px);display:flex;gap:28px;padding:20px 30px;border-radius:99px;font-size:13px;white-space:nowrap;
+  /* Ditempatkan murni oleh grid (kolom 2, baris 2, rata bawah foto) — tanpa
+     transform hardcoded, sehingga tidak pecah di lebar viewport antar-breakpoint. */
+  .contact-pill{grid-column:2;grid-row:2;align-self:end;justify-self:start;position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:28px;padding:20px 30px;border-radius:99px;font-size:13px;white-space:nowrap;
     color:#111110;background:rgba(255,255,255,.3);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.55);box-shadow:0 8px 24px rgba(17,17,16,.12);transition:background .25s var(--ease-out-editorial)}
   /* Sama seperti footer: link di atas layer dekoratif agar seluruh area tetap terklik. */
   .contact-pill a{position:relative;z-index:2;isolation:isolate;border-radius:99px;padding:6px 10px;margin:-6px -10px;cursor:pointer;transition:background .25s var(--ease-out-editorial)}
@@ -28,25 +30,9 @@ import { site, aboutBio, experience, tools, capabilities, education, languages }
   .card div{margin:28px 0}
   .stack{display:flex;flex-direction:column;gap:20px}
   .capability p{margin:17px 0}
-  @media(max-width:700px){.about-intro,.info-grid{grid-template-columns:1fr}.about-intro{gap:25px}.about-intro p{font-size:18px}.portrait,.bio,.contact-pill{grid-column:1;grid-row:auto}.contact-pill{transform:none;justify-self:start;max-width:100%;overflow-x:auto;gap:20px;padding:18px}}
+  @media(max-width:700px){.about-intro,.info-grid{grid-template-columns:1fr}.about-intro{gap:25px}.about-intro p{font-size:18px}.portrait,.bio,.contact-pill{grid-column:1;grid-row:auto}.contact-pill{justify-self:start;max-width:100%;overflow-x:auto;gap:20px;padding:18px}}
 </style>
 <script>
-  // Sama seperti Footer: Gmail compose sebagai utama, mailto: sebagai fallback.
-  document.querySelectorAll<HTMLAnchorElement>('.about-intro a.email-link[data-email]').forEach((a) => {
-    a.addEventListener('click', (e) => {
-      const email = a.dataset.email;
-      if (!email) return; // biarkan mailto: bawaan berjalan sebagai fallback
-      // Hormati klik dengan modifier (ctrl/cmd/shift = biarkan mailto: dipakai)
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      e.preventDefault();
-      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
-      try {
-        const w = window.open(url, '_blank', 'noopener,noreferrer');
-        // Popup diblokir -> fallback ke mailto: lewat location agar tetap terpicu.
-        if (!w || w.closed) window.location.href = a.getAttribute('href') || `mailto:${email}`;
-      } catch {
-        window.location.href = a.getAttribute('href') || `mailto:${email}`;
-      }
-    });
-  });
+  import { bindEmailLinks } from '../lib/gmailCompose';
+  bindEmailLinks();
 </script>

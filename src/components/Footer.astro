@@ -17,20 +17,8 @@ const hasIntroLead = site.footer.intro.startsWith(introLead);
 </div><div class="line"></div>
 </footer>
 <script>
-  // Buka Gmail compose di browser (tab baru); mailto: tetap jadi fallback
-  document.querySelectorAll<HTMLAnchorElement>('a.email-link[data-email]').forEach((a) => {
-    a.addEventListener('click', (e) => {
-      const email = a.dataset.email;
-      if (!email) return; // biarkan mailto: bawaan berjalan sebagai fallback
-      // Hormati klik dengan modifier (ctrl/cmd/shift = buka mailto di tab/jendela baru)
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      e.preventDefault();
-      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
-      const w = window.open(url, '_blank', 'noopener,noreferrer');
-      // Jika popup diblokir, fallback ke mailto:
-      if (!w) window.location.href = a.href;
-    });
-  });
+  import { bindEmailLinks } from '../lib/gmailCompose';
+  bindEmailLinks();
 </script>
 <style>
 /* Motion: footer reveal — opacity only (no translateY) to preserve the

@@ -8,23 +8,9 @@ const actions=[{label:'EMAIL',value:site.contacts.email,href:`mailto:${site.cont
 <section class="card contact" data-contact-section><div><h2>Get in touch</h2><p>Terbuka untuk kolaborasi pembuatan film dokumenter, riset partisipatif lingkungan, pemetaan wilayah kelola rakyat, maupun diskusi advokasi keadilan sosial.</p><div class="actions">{actions.map(a=>a.href?<a href={a.href} target="_blank" rel="noopener noreferrer" class={a.email?'email-link':undefined} data-email={a.email?site.contacts.email:undefined}><strong>{a.label} ↗</strong><span>{a.value}</span><small>{a.caption}</small></a>:<div aria-disabled="true"><strong>{a.label}</strong><span>{a.value}</span><small>URL belum tersedia</small></div>)}</div></div><aside><h3>BASED IN</h3><p>{site.location}</p><h3>FIELD AVAILABILITY</h3><p>Bersedia untuk penugasan lapangan dokumenter dan advokasi seluruh wilayah Indonesia</p><h3>CURRICULUM VITAE</h3>{site.cv.url?<a href={site.cv.url} target="_blank" rel="noopener noreferrer">View / Download CV ↗</a>:<button disabled>CV belum tersedia</button>}</aside></section>
 
 <script>
-  // Buka Gmail compose di browser (tab baru); mailto: tetap jadi fallback.
-  // Dibatasi ke section ini agar tidak bertumpuk dengan handler Footer.
-  document.querySelectorAll<HTMLElement>('[data-contact-section]').forEach((root) => {
-    root.querySelectorAll<HTMLAnchorElement>('a.email-link[data-email]').forEach((a) => {
-      if (a.dataset.emailBound) return;
-      a.dataset.emailBound = 'true';
-      a.addEventListener('click', (e) => {
-        const email = a.dataset.email;
-        if (!email) return; // biarkan mailto: bawaan berjalan sebagai fallback
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        e.preventDefault();
-        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
-        const w = window.open(url, '_blank', 'noopener,noreferrer');
-        if (!w) window.location.href = a.href; // fallback bila popup diblokir
-      });
-    });
-  });
+  import { bindEmailLinks } from '../lib/gmailCompose';
+  // Idempotent guard means this is safe alongside the Footer / About handlers.
+  bindEmailLinks();
 </script>
 <style>
   .contact{display:grid;grid-template-columns:1.5fr 1fr;gap:45px;padding:45px}
